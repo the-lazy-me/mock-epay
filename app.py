@@ -41,20 +41,23 @@ MERCHANTS = {
 # 模拟订单存储
 ORDERS = {} 
 
-def verify_sign(params, merchant_key):
-    """验证MD5签名"""
-    # 排除sign和sign_type参数，过滤空值
+def verify_sign(params, key):
+    """验证签名"""
+    # 排除sign和sign_type参数，并过滤空值
+    # 同时排除一些常见的客户端额外参数
+    excluded_params = ['sign', 'sign_type', 'device', 'clientip', 'param']
     sign_params = {k: v for k, v in params.items() 
-                   if k not in ['sign', 'sign_type'] and v is not None and v != ''}
+                   if k not in excluded_params and v is not None and v != ''}
     
     # 按key排序
     sorted_keys = sorted(sign_params.keys())
-    sign_str = "&".join([f"{k}={sign_params[k]}" for k in sorted_keys])
-    sign_str += merchant_key
     
-    # MD5加密，结果小写
-    calculated_sign = hashlib.md5(sign_str.encode('utf-8')).hexdigest().lower()
-    return calculated_sign
+    # 构建签名字符串
+    sign_str = "&".join([f"{k}={sign_params[k]}" for k in sorted_keys])
+    sign_str += key
+    
+    # 计算MD5
+    return hashlib.md5(sign_str.encode('utf-8')).hexdigest().lower()
 
 @app.route('/submit', methods=['GET', 'POST'])
 @app.route('/submit.php', methods=['GET', 'POST'])
@@ -101,8 +104,9 @@ def submit():
     print(f"  商户密钥: {merchant['key']}")
     
     # 打印签名字符串用于调试
+    excluded_params = ['sign', 'sign_type', 'device', 'clientip', 'param']
     sign_params = {k: v for k, v in params.items() 
-                   if k not in ['sign', 'sign_type'] and v is not None and v != ''}
+                   if k not in excluded_params and v is not None and v != ''}
     sorted_keys = sorted(sign_params.keys())
     sign_str = "&".join([f"{k}={sign_params[k]}" for k in sorted_keys])
     sign_str += merchant['key']
@@ -171,8 +175,9 @@ def mapi():
     print(f"  商户密钥: {merchant['key']}")
     
     # 打印签名字符串用于调试
+    excluded_params = ['sign', 'sign_type', 'device', 'clientip', 'param']
     sign_params = {k: v for k, v in params.items() 
-                   if k not in ['sign', 'sign_type'] and v is not None and v != ''}
+                   if k not in excluded_params and v is not None and v != ''}
     sorted_keys = sorted(sign_params.keys())
     sign_str = "&".join([f"{k}={sign_params[k]}" for k in sorted_keys])
     sign_str += merchant['key']
