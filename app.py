@@ -93,8 +93,23 @@ def submit():
     
     # 验证签名
     expected_sign = verify_sign(params, merchant['key'])
-    if params['sign'].lower() != expected_sign:
-        return "签名验证失败", 400
+    received_sign = params['sign'].lower()
+    
+    print(f"签名验证调试信息:")
+    print(f"  接收到的签名: {received_sign}")
+    print(f"  期望的签名: {expected_sign}")
+    print(f"  商户密钥: {merchant['key']}")
+    
+    # 打印签名字符串用于调试
+    sign_params = {k: v for k, v in params.items() 
+                   if k not in ['sign', 'sign_type'] and v is not None and v != ''}
+    sorted_keys = sorted(sign_params.keys())
+    sign_str = "&".join([f"{k}={sign_params[k]}" for k in sorted_keys])
+    sign_str += merchant['key']
+    print(f"  服务器签名字符串: {sign_str}")
+    
+    if received_sign != expected_sign:
+        return f"签名验证失败 - 接收: {received_sign[:8]}..., 期望: {expected_sign[:8]}...", 400
     
     print(f"Received payment request: {request.method}")
     print(f"Data: {params}")
@@ -148,8 +163,23 @@ def mapi():
     
     # 验证签名
     expected_sign = verify_sign(params, merchant['key'])
-    if params['sign'].lower() != expected_sign:
-        return jsonify({'code': 0, 'msg': '签名验证失败'})
+    received_sign = params['sign'].lower()
+    
+    print(f"API接口签名验证调试信息:")
+    print(f"  接收到的签名: {received_sign}")
+    print(f"  期望的签名: {expected_sign}")
+    print(f"  商户密钥: {merchant['key']}")
+    
+    # 打印签名字符串用于调试
+    sign_params = {k: v for k, v in params.items() 
+                   if k not in ['sign', 'sign_type'] and v is not None and v != ''}
+    sorted_keys = sorted(sign_params.keys())
+    sign_str = "&".join([f"{k}={sign_params[k]}" for k in sorted_keys])
+    sign_str += merchant['key']
+    print(f"  服务器签名字符串: {sign_str}")
+    
+    if received_sign != expected_sign:
+        return jsonify({'code': 0, 'msg': f'签名验证失败 - 接收: {received_sign[:8]}..., 期望: {expected_sign[:8]}...'})
     
     # 生成易支付订单号
     trade_no = f"{int(time.time())}{params['out_trade_no'][-6:]}"
