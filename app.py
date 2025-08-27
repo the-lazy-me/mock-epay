@@ -103,6 +103,9 @@ def submit():
     print(f"  期望的签名: {expected_sign}")
     print(f"  商户密钥: {merchant['key']}")
     
+    # 打印所有接收到的参数
+    print(f"  所有接收参数: {dict(params)}")
+    
     # 打印签名字符串用于调试
     excluded_params = ['sign', 'sign_type', 'device', 'clientip', 'param']
     sign_params = {k: v for k, v in params.items() 
@@ -111,6 +114,23 @@ def submit():
     sign_str = "&".join([f"{k}={sign_params[k]}" for k in sorted_keys])
     sign_str += merchant['key']
     print(f"  服务器签名字符串: {sign_str}")
+    
+    # 尝试包含device参数的签名验证
+    if 'device' in params:
+        print(f"  检测到device参数: {params['device']}")
+        device_params = {k: v for k, v in params.items() 
+                        if k not in ['sign', 'sign_type'] and v is not None and v != ''}
+        device_sorted = sorted(device_params.keys())
+        device_str = "&".join([f"{k}={device_params[k]}" for k in device_sorted])
+        device_str += merchant['key']
+        device_sign = hashlib.md5(device_str.encode('utf-8')).hexdigest().lower()
+        print(f"  包含device的签名字符串: {device_str}")
+        print(f"  包含device的计算签名: {device_sign}")
+        print(f"  device签名匹配: {device_sign == received_sign}")
+        
+        if device_sign == received_sign:
+            print(f"  使用包含device的签名验证通过!")
+            expected_sign = device_sign
     
     if received_sign != expected_sign:
         return f"签名验证失败 - 接收: {received_sign[:8]}..., 期望: {expected_sign[:8]}...", 400
@@ -174,6 +194,9 @@ def mapi():
     print(f"  期望的签名: {expected_sign}")
     print(f"  商户密钥: {merchant['key']}")
     
+    # 打印所有接收到的参数
+    print(f"  所有接收参数: {dict(params)}")
+    
     # 打印签名字符串用于调试
     excluded_params = ['sign', 'sign_type', 'device', 'clientip', 'param']
     sign_params = {k: v for k, v in params.items() 
@@ -182,6 +205,23 @@ def mapi():
     sign_str = "&".join([f"{k}={sign_params[k]}" for k in sorted_keys])
     sign_str += merchant['key']
     print(f"  服务器签名字符串: {sign_str}")
+    
+    # 尝试包含device参数的签名验证
+    if 'device' in params:
+        print(f"  检测到device参数: {params['device']}")
+        device_params = {k: v for k, v in params.items() 
+                        if k not in ['sign', 'sign_type'] and v is not None and v != ''}
+        device_sorted = sorted(device_params.keys())
+        device_str = "&".join([f"{k}={device_params[k]}" for k in device_sorted])
+        device_str += merchant['key']
+        device_sign = hashlib.md5(device_str.encode('utf-8')).hexdigest().lower()
+        print(f"  包含device的签名字符串: {device_str}")
+        print(f"  包含device的计算签名: {device_sign}")
+        print(f"  device签名匹配: {device_sign == received_sign}")
+        
+        if device_sign == received_sign:
+            print(f"  使用包含device的签名验证通过!")
+            expected_sign = device_sign
     
     if received_sign != expected_sign:
         return jsonify({'code': 0, 'msg': f'签名验证失败 - 接收: {received_sign[:8]}..., 期望: {expected_sign[:8]}...'})
