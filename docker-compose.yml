@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  mock-epay:
+    build: .
+    container_name: mock-epay
+    ports:
+      - "6002:6002"
+    environment:
+      - FLASK_ENV=production
+      - PYTHONPATH=/app
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6002/api.php?act=query&pid=1001&key=89unJUB8HZ54Hj7x4nUj56HN4nUzUJ8i"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - epay-network
+
+networks:
+  epay-network:
+    driver: bridge
