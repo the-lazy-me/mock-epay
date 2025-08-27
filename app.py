@@ -80,7 +80,7 @@ def submit():
     def get_param(key):
         return request.form.get(key) or request.args.get(key)
     
-    # 获取所有参数
+    # 获取所有参数（包括可能的额外参数）
     params = {
         'pid': get_param('pid'),
         'type': get_param('type'),
@@ -91,7 +91,9 @@ def submit():
         'money': get_param('money'),
         'param': get_param('param'),
         'sign': get_param('sign'),
-        'sign_type': get_param('sign_type')
+        'sign_type': get_param('sign_type'),
+        'device': get_param('device'),
+        'clientip': get_param('clientip')
     }
     
     # 验证必填参数
@@ -464,4 +466,4 @@ def api_post():
     return api()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=6002, debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5001)
