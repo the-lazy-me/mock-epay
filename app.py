@@ -42,22 +42,36 @@ MERCHANTS = {
 ORDERS = {} 
 
 def verify_sign(params, key):
-    """验证签名"""
-    # 排除sign和sign_type参数，并过滤空值
-    # 同时排除一些常见的客户端额外参数
+    """验证签名 - 智能兼容客户端额外参数"""
+    received_sign = params.get('sign', '').lower()
+    
+    # 方案1: 标准签名（排除常见额外参数）
     excluded_params = ['sign', 'sign_type', 'device', 'clientip', 'param']
     sign_params = {k: v for k, v in params.items() 
                    if k not in excluded_params and v is not None and v != ''}
     
-    # 按key排序
     sorted_keys = sorted(sign_params.keys())
-    
-    # 构建签名字符串
     sign_str = "&".join([f"{k}={sign_params[k]}" for k in sorted_keys])
     sign_str += key
+    standard_sign = hashlib.md5(sign_str.encode('utf-8')).hexdigest().lower()
     
-    # 计算MD5
-    return hashlib.md5(sign_str.encode('utf-8')).hexdigest().lower()
+    if standard_sign == received_sign:
+        return standard_sign
+    
+    # 方案2: 如果标准签名不匹配，尝试包含device参数
+    if 'device' in params:
+        device_params = {k: v for k, v in params.items() 
+                        if k not in ['sign', 'sign_type'] and v is not None and v != ''}
+        device_sorted = sorted(device_params.keys())
+        device_str = "&".join([f"{k}={device_params[k]}" for k in device_sorted])
+        device_str += key
+        device_sign = hashlib.md5(device_str.encode('utf-8')).hexdigest().lower()
+        
+        if device_sign == received_sign:
+            return device_sign
+    
+    # 返回标准签名（用于错误提示）
+    return standard_sign
 
 @app.route('/submit', methods=['GET', 'POST'])
 @app.route('/submit.php', methods=['GET', 'POST'])
