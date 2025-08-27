@@ -9,11 +9,13 @@ services:
     environment:
       - FLASK_ENV=production
       - PYTHONPATH=/app
+      - EPAY_KEY=${EPAY_KEY:-89unJUB8HZ54Hj7x4nUj56HN4nUzUJ8i}
+      - MERCHANTS_ID=${MERCHANTS_ID:-1001}
     volumes:
       - ./logs:/app/logs
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6002/api.php?act=query&pid=1001&key=89unJUB8HZ54Hj7x4nUj56HN4nUzUJ8i"]
+      test: ["CMD", "curl", "-f", "http://localhost:6002/api.php?act=query&pid=${MERCHANTS_ID:-1001}&key=${EPAY_KEY:-89unJUB8HZ54Hj7x4nUj56HN4nUzUJ8i}"]
       interval: 30s
       timeout: 10s
       retries: 3

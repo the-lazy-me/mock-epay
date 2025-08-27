@@ -1,24 +1,40 @@
 import hashlib
 import time
 import json
+import os
 from datetime import datetime
 from flask import Flask, request, render_template, redirect, jsonify
 import requests
 
 app = Flask(__name__)
 
-# 模拟商户配置
+# 从环境变量获取配置
+EPAY_KEY = os.getenv('EPAY_KEY', '89unJUB8HZ54Hj7x4nUj56HN4nUzUJ8i')
+MERCHANTS_ID = os.getenv('MERCHANTS_ID', '1001')
+
+# 模拟商户配置 - 测试系统支持所有支付通道
 MERCHANTS = {
-    '1001': {
-        'key': '89unJUB8HZ54Hj7x4nUj56HN4nUzUJ8i',
+    MERCHANTS_ID: {
+        'key': EPAY_KEY,
         'active': 1,
-        'money': '1000.00',
+        'money': '999999999999.00',  # 无限额度
         'type': 1,  # 1:支付宝,2:微信,3:QQ,4:银行卡
-        'account': 'admin@pay.com',
-        'username': '张三',
-        'orders': 30,
-        'order_today': 15,
-        'order_lastday': 15
+        'account': 'test@mock-epay.com',
+        'username': '测试商户',
+        'orders': 0,
+        'order_today': 0,
+        'order_lastday': 0,
+        # 支持的支付通道
+        'supported_channels': ['alipay', 'wxpay', 'qqpay', 'bank', 'jdpay', 'paypal', 'usdt'],
+        'channel_status': {
+            'alipay': True,
+            'wxpay': True, 
+            'qqpay': True,
+            'bank': True,
+            'jdpay': True,
+            'paypal': True,
+            'usdt': True
+        }
     }
 }
 
@@ -122,6 +138,14 @@ def mapi():
     if merchant['active'] != 1:
         return jsonify({'code': 0, 'msg': '商户已被封禁'})
     
+    # 验证支付通道
+    payment_type = params['type']
+    if payment_type not in merchant['supported_channels']:
+        return jsonify({'code': 0, 'msg': f'不支持的支付方式: {payment_type}'})
+    
+    if not merchant['channel_status'].get(payment_type, False):
+        return jsonify({'code': 0, 'msg': f'支付通道已关闭: {payment_type}'})
+    
     # 验证签名
     expected_sign = verify_sign(params, merchant['key'])
     if params['sign'].lower() != expected_sign:
@@ -155,18 +179,32 @@ def mapi():
     }
     
     # 模拟不同支付方式的返回
-    if params['type'] == 'alipay':
-        if params['device'] == 'mobile':
+    payment_type = params['type']
+    device = params['device']
+    
+    if payment_type == 'alipay':
+        if device == 'mobile':
             response_data['payurl'] = f'https://mock-epay.com/pay/alipay/{trade_no}/'
         else:
             response_data['qrcode'] = f'https://qr.alipay.com/bax08888?t={trade_no}'
-    elif params['type'] == 'wxpay':
-        if params['device'] == 'wechat':
+    elif payment_type == 'wxpay':
+        if device == 'wechat':
             response_data['urlscheme'] = f'weixin://dl/business/?ticket={trade_no}'
         else:
             response_data['qrcode'] = f'weixin://wxpay/bizpayurl?pr={trade_no}'
+    elif payment_type == 'qqpay':
+        response_data['qrcode'] = f'https://qpay.qq.com/qr/{trade_no}'
+    elif payment_type == 'bank':
+        response_data['payurl'] = f'https://mock-epay.com/pay/bank/{trade_no}/'
+    elif payment_type == 'jdpay':
+        response_data['qrcode'] = f'https://jdpay.com/qr/{trade_no}'
+    elif payment_type == 'paypal':
+        response_data['payurl'] = f'https://www.paypal.com/checkoutnow?token={trade_no}'
+    elif payment_type == 'usdt':
+        response_data['qrcode'] = f'bitcoin:{trade_no}?amount=1'
     else:
-        response_data['payurl'] = f'https://mock-epay.com/pay/{params["type"]}/{trade_no}/'
+        # 其他支付方式默认返回支付链接
+        response_data['payurl'] = f'https://mock-epay.com/pay/{payment_type}/{trade_no}/'
     
     return jsonify(response_data)
 

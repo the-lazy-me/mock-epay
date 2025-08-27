@@ -83,6 +83,44 @@ def test_mapi_payment():
     else:
         print("✗ API接口支付测试失败\n")
 
+def test_all_payment_channels():
+    """测试所有支付通道"""
+    print("=== 测试所有支付通道 ===")
+    
+    channels = ['alipay', 'wxpay', 'qqpay', 'bank', 'jdpay', 'paypal', 'usdt']
+    
+    for i, channel in enumerate(channels):
+        params = {
+            'pid': TEST_PID,
+            'type': channel,
+            'out_trade_no': f'TEST2024082700{i+10}',
+            'notify_url': 'http://localhost:8080/notify',
+            'return_url': 'http://localhost:8080/return',
+            'name': f'测试{channel}支付',
+            'money': f'{i+1}.00',
+            'clientip': '192.168.1.100',
+            'device': 'pc',
+            'sign_type': 'MD5'
+        }
+        
+        # 生成签名
+        params['sign'] = generate_sign(params, TEST_KEY)
+        
+        # 发送POST请求
+        response = requests.post(f"{BASE_URL}/mapi.php", data=params)
+        result = response.json()
+        
+        print(f"{channel}: {result['code']} - {result.get('msg', 'success')}")
+        if result['code'] == 1:
+            if 'qrcode' in result:
+                print(f"  二维码: {result['qrcode'][:50]}...")
+            elif 'payurl' in result:
+                print(f"  支付链接: {result['payurl'][:50]}...")
+            elif 'urlscheme' in result:
+                print(f"  小程序链接: {result['urlscheme'][:50]}...")
+    
+    print("✓ 所有支付通道测试完成\n")
+
 def test_query_merchant():
     """测试查询商户信息"""
     print("=== 测试查询商户信息 ===")
@@ -149,6 +187,7 @@ if __name__ == "__main__":
     try:
         test_submit_payment()
         test_mapi_payment()
+        test_all_payment_channels()
         test_query_merchant()
         test_query_orders()
         test_invalid_sign()
